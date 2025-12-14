@@ -1,0 +1,4 @@
+{
+  "name": "TreeRec - Behavioral Recommendation Engine",
+  "description": "A product recommendation system that builds user profiles using custom-implemented Trie structures and organizes products in N-ary category trees. Uses Gemini to extract behavioral tokens from simulated social activity."
+}

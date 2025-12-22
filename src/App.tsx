@@ -3,13 +3,12 @@ import { UserProfileTrie } from './lib/trees/UserProfileTrie';
 import { ProductCategoryTree } from './lib/trees/ProductCategoryTree';
 import { ProductSearchTrie } from './lib/trees/ProductSearchTrie';
 import { INITIAL_PRODUCTS } from './lib/mockData';
-// import { Product, ScoredProduct, UserAction } from './types';
 import { TreeVisualizer } from './components/TreeVisualizer';
 import { extractTokensFromText, enrichProductQuery } from './services/localAnalysis';
-import { 
-  Search, 
-  Activity, 
-  Share2, 
+import {
+  Search,
+  Activity,
+  Share2,
   Zap,
   Cpu,
   User,
@@ -20,7 +19,11 @@ import {
   Play,
   X,
   Tag,
-  Info
+  Info,
+  Maximize2,
+  Navigation,
+  Hash,
+  Layers
 } from 'lucide-react';
 import type { Product, ScoredProduct, UserAction } from './types';
 
@@ -53,10 +56,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isRecommendation = f
 
       {isRecommendation && reasons && (
         <div className="mb-4 bg-indigo-50 p-2 rounded text-xs text-indigo-800">
-          <span className="font-bold block mb-1">Motivo da Sugestão:</span>
+          <span className="font-bold block mb-1 text-[10px] uppercase">DNA de Recomendação:</span>
           <div className="flex flex-wrap gap-1">
             {reasons.slice(0, 3).map((r, i) => (
-              <span key={i} className="bg-white px-1.5 py-0.5 rounded border border-indigo-100">{r.split('(')[0]}</span>
+              <span key={i} className="bg-white px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
+                <Hash size={8} /> {r.split('(')[0]}
+              </span>
             ))}
           </div>
         </div>
@@ -64,11 +69,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isRecommendation = f
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
         <span className="text-lg font-bold text-slate-900">R$ {product.price.toFixed(2)}</span>
-        <button 
+        <button
           onClick={() => onView(product)}
           className="text-xs bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-md font-medium flex items-center gap-1 transition-colors"
         >
-          <Eye size={14} /> Ver Detalhes
+          <Eye size={14} /> Detalhes
         </button>
       </div>
     </div>
@@ -98,7 +103,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
           <div className="space-y-6">
             <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 h-full flex flex-col justify-center items-center text-center">
                <ShoppingBag size={64} className="text-slate-200 mb-4" />
-               <p className="text-sm text-slate-400">Imagem Ilustrativa do Produto</p>
+               <p className="text-sm text-slate-400">Imagem do Produto</p>
             </div>
           </div>
           
@@ -114,7 +119,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 
             <div>
               <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                <Tag size={18} className="text-indigo-600"/> Palavras-chave (Tags)
+                <Tag size={18} className="text-indigo-600"/> Tags (Nós da Trie)
               </h3>
               <div className="flex flex-wrap gap-2">
                 {product.keywords.map((k, i) => (
@@ -127,7 +132,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 
             <div className="pt-6 border-t border-slate-100">
               <div className="flex items-center justify-between mb-4">
-                 <span className="text-sm text-slate-500">Preço à vista</span>
+                 <span className="text-sm text-slate-500">Valor</span>
                  <span className="text-3xl font-bold text-slate-900">R$ {product.price.toFixed(2)}</span>
               </div>
               <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-bold text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95">
@@ -144,32 +149,26 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 // --- Aplicação Principal ---
 
 export default function App() {
-  // Estruturas de Dados (Refs para persistência)
-  const userProfileTrie = useRef(new UserProfileTrie());       
-  const productCatalogTree = useRef(new ProductCategoryTree()); 
+  const userProfileTrie = useRef(new UserProfileTrie());      
+  const productCatalogTree = useRef(new ProductCategoryTree());
   const productSearchTrie = useRef(new ProductSearchTrie());    
 
-  // Estados Globais
-  const [products, setProducts] = useState<Product[]>([]); // Estado central de produtos
+  const [products, setProducts] = useState<Product[]>([]);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [recommendations, setRecommendations] = useState<ScoredProduct[]>([]);
   const [actionLog, setActionLog] = useState<UserAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'store' | 'debug'>('store');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
-  // Estado de Visualização da Loja
+ 
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
-  
-  // Inputs
+ 
   const [searchInput, setSearchInput] = useState('');
   const [socialInput, setSocialInput] = useState('');
   const [streamingInput, setStreamingInput] = useState('');
 
-  // Inicialização
   useEffect(() => {
-    // Carrega produtos iniciais
     setProducts(INITIAL_PRODUCTS);
     INITIAL_PRODUCTS.forEach(p => {
       productCatalogTree.current.insertProduct(p);
@@ -178,46 +177,37 @@ export default function App() {
     setLastUpdate(Date.now());
   }, []);
 
-  // --- Função Auxiliar: Criação Dinâmica de Produtos ---
   const createDynamicProduct = async (term: string, source: string): Promise<Product> => {
     const cleanTerm = term.trim();
-    // Gera uma descrição simples (agora local, sem API externa)
     const description = await enrichProductQuery(cleanTerm);
     
     const newProduct: Product = {
       id: `dyn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: cleanTerm.charAt(0).toUpperCase() + cleanTerm.slice(1) + (source === 'social' ? ' (Trending)' : ''),
-      brand: "Genérica / Importada",
+      brand: "Geração Dinâmica",
       categoryPath: ["Novidades", source === 'store' ? "Busca" : source === 'social' ? "Social Trends" : "Streaming", cleanTerm],
       description: description,
       keywords: [cleanTerm.toLowerCase(), source, "novidade"],
       price: Math.floor(Math.random() * 500) + 50
     };
 
-    // Atualiza estruturas
     productCatalogTree.current.insertProduct(newProduct);
     productSearchTrie.current.insertProduct(newProduct);
-    
-    // Atualiza estado local
     setProducts(prev => [...prev, newProduct]);
-    
     return newProduct;
   };
 
-  // --- Lógica: Motor de Recomendação ---
   const generateRecommendations = () => {
-    // Re-busca todos os produtos da árvore (incluindo os novos dinâmicos)
     const allProducts = productCatalogTree.current.getAllProducts();
     const interestsMap = userProfileTrie.current.getAllInterests();
-    
     const scoredProducts: ScoredProduct[] = [];
 
     allProducts.forEach(product => {
       let score = 0;
       const matchReasons: string[] = [];
       const productTokens = [
-        ...product.keywords, 
-        product.brand.toLowerCase(), 
+        ...product.keywords,
+        product.brand.toLowerCase(),
         ...product.categoryPath.map(c => c.toLowerCase())
       ];
 
@@ -238,46 +228,30 @@ export default function App() {
     setRecommendations(scoredProducts);
   };
 
-  // Atualiza recomendações sempre que a lista de produtos muda
   useEffect(() => {
     generateRecommendations();
   }, [products]);
-
-  // --- Ações do Usuário ---
 
   const handleSearch = async () => {
     if (!searchInput.trim()) return;
     setIsLoading(true);
     setIsSearching(true);
-
     const term = searchInput.trim();
-
-    // 1. Atualiza Perfil (Behavior)
     const action: UserAction = { type: 'SEARCH', content: term, timestamp: Date.now() };
     setActionLog(prev => [action, ...prev]);
-    
-    // Extração local de tokens
     const tokens = await extractTokensFromText(term);
-    tokens.forEach(t => userProfileTrie.current.insert(t, 2.0)); 
-    // Garante que o termo exato também está na Trie
+    tokens.forEach(t => userProfileTrie.current.insert(t, 2.0));
     userProfileTrie.current.insert(term.toLowerCase(), 2.0);
-
-    // 2. Busca na Trie
     let foundIds = productSearchTrie.current.search(term);
-    
-    // 3. SE NÃO ENCONTRAR: Cria produto dinâmico!
     if (foundIds.size === 0) {
        const newProd = await createDynamicProduct(term, 'store');
-       foundIds = new Set([newProd.id]); // Agora encontramos o novo
+       foundIds = new Set([newProd.id]);
     }
-
-    // 4. Filtra e Exibe
     const allCurrentProducts = productCatalogTree.current.getAllProducts();
     const filtered = allCurrentProducts.filter(p => foundIds.has(p.id));
-    
     setSearchResults(filtered);
     setLastUpdate(Date.now());
-    generateRecommendations(); 
+    generateRecommendations();
     setIsLoading(false);
   };
 
@@ -290,29 +264,15 @@ export default function App() {
   const handleSimulateSocial = async () => {
     if (!socialInput.trim()) return;
     setIsLoading(true);
-
     const text = socialInput;
-    
-    // 1. Log Action
     const action: UserAction = { type: 'SOCIAL_POST', content: text, timestamp: Date.now() };
     setActionLog(prev => [action, ...prev]);
-
-    // 2. Extrai tokens (interesses) localmente
     const tokens = await extractTokensFromText(text);
-    
-    // 3. Atualiza Trie de Perfil
     tokens.forEach(t => userProfileTrie.current.insert(t, 1.0));
-
-    // 4. GARANTE PRODUTOS: Se o usuário falou de algo que não temos, criamos!
-    // Para cada token relevante, verificamos se existe produto.
     for (const token of tokens) {
         const found = productSearchTrie.current.search(token);
-        if (found.size === 0) {
-            // Cria produto dinâmico baseado no interesse social
-            await createDynamicProduct(token, 'social');
-        }
+        if (found.size === 0) await createDynamicProduct(token, 'social');
     }
-
     setLastUpdate(Date.now());
     generateRecommendations();
     setSocialInput('');
@@ -322,22 +282,15 @@ export default function App() {
   const handleSimulateStreaming = async () => {
     if (!streamingInput.trim()) return;
     setIsLoading(true);
-
     const text = streamingInput;
     const action: UserAction = { type: 'STREAMING', content: `Assistiu: ${text}`, timestamp: Date.now() };
     setActionLog(prev => [action, ...prev]);
-
     const tokens = await extractTokensFromText(text);
     tokens.forEach(t => userProfileTrie.current.insert(t, 1.5));
-
-    // Lógica dinâmica para Streaming também
     for (const token of tokens) {
       const found = productSearchTrie.current.search(token);
-      if (found.size === 0) {
-          await createDynamicProduct(token, 'streaming');
-      }
-  }
-
+      if (found.size === 0) await createDynamicProduct(token, 'streaming');
+    }
     setLastUpdate(Date.now());
     generateRecommendations();
     setStreamingInput('');
@@ -345,35 +298,24 @@ export default function App() {
   };
 
   const handleProductView = (product: Product) => {
-    setSelectedProduct(product); // Abre Modal
-
+    setSelectedProduct(product);
     const action: UserAction = { type: 'VIEW', content: `Visualizou ${product.name}`, timestamp: Date.now() };
     setActionLog(prev => [action, ...prev]);
-
     product.keywords.forEach(k => userProfileTrie.current.insert(k, 0.5));
     userProfileTrie.current.insert(product.brand.toLowerCase(), 0.5);
-    // categoryPath pode ser array vazio se criado dinamicamente de forma simples, proteção:
     if(product.categoryPath.length > 0) {
       userProfileTrie.current.insert(product.categoryPath[product.categoryPath.length-1].toLowerCase(), 0.5);
     }
-
     setLastUpdate(Date.now());
     generateRecommendations();
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      
-      {/* MODAL DE DETALHES */}
-      {selectedProduct && (
-        <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      )}
+      {selectedProduct && <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />}
 
-      {/* Navbar estilo E-commerce */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-8">
-          
-          {/* Logo */}
           <div className="flex items-center gap-2 min-w-fit cursor-pointer" onClick={() => {setActiveTab('store'); clearSearch();}}>
             <div className="bg-indigo-600 p-1.5 rounded text-white">
               <GitBranch size={24} />
@@ -381,11 +323,10 @@ export default function App() {
             <span className="text-xl font-bold tracking-tight text-slate-900">TreeRec<span className="text-indigo-600">.Shop</span></span>
           </div>
 
-          {/* Barra de Busca Central */}
           <div className="flex-1 max-w-2xl relative">
             <div className="relative">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 placeholder="Busque por produtos (ex: Guitarra, Drone, Livro)..."
@@ -394,36 +335,22 @@ export default function App() {
               />
               <Search className="absolute left-3.5 top-2.5 text-slate-400" size={18} />
               {isSearching && (
-                <button 
-                  onClick={clearSearch}
-                  className="absolute right-20 top-2 text-slate-400 hover:text-slate-600 p-1"
-                >
+                <button onClick={clearSearch} className="absolute right-20 top-2 text-slate-400 hover:text-slate-600 p-1">
                   <X size={14} />
                 </button>
               )}
-              <button 
-                onClick={handleSearch}
-                disabled={isLoading}
-                className="absolute right-1.5 top-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-full text-xs font-medium transition-colors"
-              >
+              <button onClick={handleSearch} disabled={isLoading} className="absolute right-1.5 top-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-full text-xs font-medium transition-colors">
                 Buscar
               </button>
             </div>
           </div>
 
-          {/* Menu de Usuário & Debug Switch */}
           <div className="flex items-center gap-4">
             <div className="flex bg-slate-100 p-1 rounded-lg">
-              <button 
-                onClick={() => setActiveTab('store')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'store' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
+              <button onClick={() => setActiveTab('store')} className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'store' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                 <ShoppingBag size={14}/> Loja
               </button>
-              <button 
-                onClick={() => setActiveTab('debug')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'debug' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
+              <button onClick={() => setActiveTab('debug')} className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'debug' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                 <BarChart3 size={14}/> Debug
               </button>
             </div>
@@ -435,199 +362,202 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        
-        {/* VISÃO DA LOJA (STORE VIEW) */}
         {activeTab === 'store' && (
           <div className="space-y-12 animate-in fade-in duration-500">
-            
-            {/* Se estiver Buscando, mostra RESULTADOS DA BUSCA */}
-            {isSearching ? (
+            {isSearching && (
               <section>
                  <div className="flex items-center gap-2 mb-6">
                   <Search className="text-slate-700" size={24} />
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Resultados para "{searchInput}"
-                  </h2>
-                  <span className="text-sm text-slate-500 ml-2">
-                    ({searchResults.length} produtos encontrados)
-                  </span>
+                  <h2 className="text-2xl font-bold text-slate-900">Resultados para "{searchInput}"</h2>
                 </div>
                 {searchResults.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {searchResults.map(product => (
-                      <ProductCard key={product.id} product={product} onView={handleProductView} />
-                    ))}
+                    {searchResults.map(product => <ProductCard key={product.id} product={product} onView={handleProductView} />)}
                   </div>
                 ) : (
                   <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-                    <p className="text-slate-500">Criando produtos personalizados para sua busca...</p>
+                    <p className="text-slate-500">Nenhum produto fixo encontrado. A árvore está gerando novos nós...</p>
                   </div>
                 )}
               </section>
-            ) : (
-              <>
-                {/* Seção de Recomendações (Destaque) */}
-                <section>
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Zap className="text-yellow-500 fill-yellow-500" size={24} /> Recomendado para Você
-                      </h2>
-                      <p className="text-slate-500 text-sm mt-1">Produtos selecionados baseados no seu perfil comportamental.</p>
-                    </div>
-                  </div>
-
-                  {recommendations.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {recommendations.slice(0, 4).map(product => (
-                        <ProductCard key={product.id} product={product} isRecommendation={true} onView={handleProductView} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center">
-                      <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Activity className="text-slate-400" size={32} />
-                      </div>
-                      <h3 className="text-lg font-medium text-slate-900">Seu perfil está vazio</h3>
-                      <p className="text-slate-500 text-sm max-w-md mx-auto mt-2">
-                        Utilize o <strong>Simulador Social</strong> na aba Debug ou faça uma busca acima. O sistema criará produtos baseados nos seus interesses automaticamente!
-                      </p>
-                    </div>
-                  )}
-                </section>
-
-                {/* Vitrine Geral (Catálogo) */}
-                <section>
-                  <div className="flex items-center gap-2 mb-6 pt-8 border-t border-slate-200">
-                    <ShoppingBag className="text-slate-700" size={24} />
-                    <h2 className="text-2xl font-bold text-slate-900">Catálogo Completo</h2>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {/* Mostra os produtos iniciais + os gerados dinamicamente */}
-                    {products.map(product => (
-                      <ProductCard key={product.id} product={product} onView={handleProductView} />
-                    ))}
-                  </div>
-                </section>
-              </>
             )}
 
+            {!isSearching && (
+              <section>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <Zap className="text-yellow-500 fill-yellow-500" size={24} /> Recomendado para Você
+                    </h2>
+                  </div>
+                </div>
+                {recommendations.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {recommendations.slice(0, 4).map(product => <ProductCard key={product.id} product={product} isRecommendation={true} onView={handleProductView} />)}
+                  </div>
+                ) : (
+                  <div className="bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-400">
+                    Utilize os simuladores no Debug para alimentar as árvores.
+                  </div>
+                )}
+              </section>
+            )}
+
+            <section>
+              <div className="flex items-center gap-2 mb-6 pt-8 border-t border-slate-200">
+                <ShoppingBag className="text-slate-700" size={24} />
+                <h2 className="text-2xl font-bold text-slate-900">Catálogo Global</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.map(product => <ProductCard key={product.id} product={product} onView={handleProductView} />)}
+              </div>
+            </section>
           </div>
         )}
 
-        {/* VISÃO DE DEBUG / TÉCNICA (DEBUG VIEW) */}
         {activeTab === 'debug' && (
           <div className="grid grid-cols-12 gap-8 animate-in slide-in-from-right-10 duration-300">
-            
-            {/* Coluna Esquerda: Controles */}
             <div className="col-span-12 lg:col-span-4 space-y-6">
-              
-              {/* Simulador de Redes Sociais */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
                   <Share2 className="text-pink-500" size={20}/> Simulador Social
                 </h3>
-                <p className="text-xs text-slate-500 mb-3">
-                  Simule um post. Se o produto mencionado não existir, <span className="text-pink-600 font-bold">ele será criado e recomendado na Loja!</span>
-                </p>
-                <textarea 
+                <textarea
                   value={socialInput}
                   onChange={e => setSocialInput(e.target.value)}
                   placeholder="Ex: 'Queria muito comprar uma guitarra elétrica nova!'"
                   className="w-full border border-slate-300 rounded-lg p-3 text-sm h-20 focus:ring-2 focus:ring-pink-500 outline-none resize-none mb-3"
                 />
-                <button 
-                  onClick={handleSimulateSocial}
-                  disabled={isLoading}
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? 'Analisando e Gerando...' : 'Postar'}
+                <button onClick={handleSimulateSocial} disabled={isLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                   Postar
                 </button>
               </div>
 
-              {/* Simulador de Streaming */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
                   <Play className="text-red-600" size={20}/> Simulador de Streaming
                 </h3>
-                <p className="text-xs text-slate-500 mb-3">
-                   Assista algo. Produtos relacionados aparecerão nas recomendações.
-                </p>
-                <input 
+                <input
                   type="text"
                   value={streamingInput}
                   onChange={e => setStreamingInput(e.target.value)}
                   placeholder="Ex: 'Review de Drone 4k'"
                   className="w-full border border-slate-300 rounded-lg p-3 text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none"
-                  onKeyDown={e => e.key === 'Enter' && handleSimulateStreaming()}
                 />
-                <button 
-                  onClick={handleSimulateStreaming}
-                  disabled={isLoading}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? 'Processando...' : 'Assistir'}
+                <button onClick={handleSimulateStreaming} disabled={isLoading} className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                   Assistir
                 </button>
               </div>
 
-              {/* Log de Atividades */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-80 flex flex-col">
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Activity size={20} className="text-indigo-600"/> Log de Atividades
+                  <Activity size={20} className="text-indigo-600"/> Log Comportamental
                 </h3>
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                   {actionLog.map((log, i) => (
                     <div key={i} className="text-xs p-3 bg-slate-50 rounded border border-slate-100">
-                      <div className="flex justify-between mb-1">
-                        <span className={`font-bold px-1.5 rounded text-[10px] ${
-                          log.type === 'SEARCH' ? 'bg-blue-100 text-blue-700' :
-                          log.type === 'VIEW' ? 'bg-green-100 text-green-700' :
-                          log.type === 'STREAMING' ? 'bg-red-100 text-red-700' :
-                          'bg-pink-100 text-pink-700'
-                        }`}>
-                          {log.type}
-                        </span>
-                        <span className="text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                      <div className="flex justify-between mb-1 font-bold">
+                        <span className={log.type === 'SEARCH' ? 'text-blue-600' : 'text-pink-600'}>{log.type}</span>
+                        <span className="text-slate-400 font-normal">{new Date(log.timestamp).toLocaleTimeString()}</span>
                       </div>
                       <p className="text-slate-700">"{log.content}"</p>
                     </div>
                   ))}
-                  {actionLog.length === 0 && (
-                    <p className="text-center text-slate-400 text-sm mt-10">Nenhuma atividade registrada.</p>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Coluna Direita: Visualização das Árvores */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Cpu className="text-indigo-600" size={20} />
-                  <h3 className="font-bold text-lg text-slate-800">Visualização da Estrutura de Dados</h3>
-                </div>
-                
-                <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                   <TreeVisualizer data={userProfileTrie.current.toTreeData()} type="TRIE" />
-                   <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-600">
-                      <strong className="text-indigo-700">Trie de Perfil do Usuário:</strong> Estrutura dinâmica que cresce com seus posts e buscas.
-                   </div>
-                </div>
+            <div className="col-span-12 lg:col-span-8 space-y-8">
+              <div className="flex items-center gap-2 mb-2">
+                <Cpu className="text-indigo-600" size={24} />
+                <h2 className="text-xl font-bold text-slate-800">Inspeção de Estruturas de Memória</h2>
+              </div>
 
-                <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 mt-6">
-                   <TreeVisualizer data={productCatalogTree.current.toTreeData()} type="CATEGORY" />
-                   <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-600">
-                      <strong className="text-emerald-700">Árvore N-ária de Catálogo:</strong> Note como novos ramos (Categorias) são criados automaticamente quando você menciona produtos novos no simulador.
-                   </div>
+              {/* Árvore 1: Trie de Perfil + LEITURA BONITA */}
+              <div className="space-y-4">
+                <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-900 text-white px-4 py-2 text-xs font-mono flex justify-between items-center">
+                    <span>TRIE :: PERFIL_USUARIO</span>
+                    <span className="flex items-center gap-1 text-emerald-400"><Activity size={12}/> LIVE</span>
+                  </div>
+                  <div className="overflow-auto max-h-[350px] p-4">
+                    <div className="min-w-[800px]">
+                      <TreeVisualizer data={userProfileTrie.current.toTreeData()} type="TRIE" />
+                    </div>
+                  </div>
+                  
+                  {/* PAINEL DE LEITURA DA TRIE */}
+                  <div className="grid grid-cols-2 bg-indigo-900 p-4 gap-4 border-t border-indigo-800">
+                    <div className="space-y-2">
+                       <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
+                         <Navigation size={12}/> Navegação de Prefixos
+                       </h4>
+                       <div className="bg-indigo-950/50 rounded p-3 border border-indigo-700/50">
+                         <p className="text-indigo-100 text-xs leading-relaxed italic">
+                            "Os ponteiros percorrem cada caractere inserido, consolidando interesses comuns em ramos compartilhados para economia de memória."
+                         </p>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
+                         <Zap size={12}/> Estado dos Pesos
+                       </h4>
+                       <div className="flex flex-wrap gap-2">
+                          {Array.from(userProfileTrie.current.getAllInterests().entries()).slice(0, 5).map(([tag, score]) => (
+                            <div key={tag} className="bg-indigo-800 px-2 py-1 rounded border border-indigo-600 text-[10px] text-white flex items-center gap-2">
+                              <span className="text-indigo-300 font-mono">#{tag}</span>
+                              <span className="font-bold text-emerald-400">+{score.toFixed(1)}</span>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Árvore 2: Árvore N-ária + LEITURA BONITA */}
+              <div className="space-y-4">
+                <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-900 text-white px-4 py-2 text-xs font-mono flex justify-between items-center">
+                    <span>N-ARY_TREE :: CATALOGO_HIERARQUICO</span>
+                    <span className="flex items-center gap-1 text-blue-400"><Layers size={12}/> VIRTUAL_FS</span>
+                  </div>
+                  <div className="overflow-auto max-h-[450px] p-4">
+                    <div className="min-w-[1000px]">
+                      <TreeVisualizer data={productCatalogTree.current.toTreeData()} type="CATEGORY" />
+                    </div>
+                  </div>
+
+                  {/* PAINEL DE LEITURA DA CATEGORIA */}
+                  <div className="bg-slate-50 p-5 border-t border-slate-200">
+                    <div className="flex items-start gap-6">
+                      <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Percurso de Injeção Dinâmica</span>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                           <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                              <span className="bg-slate-100 px-2 py-1 rounded border">Raiz</span>
+                              <span className="text-slate-300">→</span>
+                              <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 text-blue-700">Novidades</span>
+                              <span className="text-slate-300">→</span>
+                              <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-emerald-700">Setor Dinâmico</span>
+                              <span className="text-slate-300">→</span>
+                              <span className="bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-indigo-700 italic">Produto Injetado (Fim do Ramo)</span>
+                           </div>
+                        </div>
+                      </div>
+                      <div className="w-1/3 space-y-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Análise de Topologia</span>
+                        <p className="text-[11px] text-slate-500 leading-tight">
+                          Cada categoria é um nó pai que pode sustentar $n$ sub-nós. A complexidade de localização é $O(h)$ onde $h$ é a profundidade da categoria.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
-
       </main>
     </div>
   );

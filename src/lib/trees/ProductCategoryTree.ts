@@ -38,8 +38,6 @@ export class ProductCategoryTree {
       }
       current = current.children.get(category)!;
     }
-
-    // Leaf category node holds the product
     current.products.push(product);
   }
 

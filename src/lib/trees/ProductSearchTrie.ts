@@ -64,11 +64,10 @@ export class ProductSearchTrie {
     let current = this.root;
     const cleanQuery = query.trim().toLowerCase();
 
-    // Navega até o final do prefixo digitado
     for (let i = 0; i < cleanQuery.length; i++) {
       const char = cleanQuery[i];
       if (!current.children.has(char)) {
-        return new Set(); // Não encontrado
+        return new Set();
       }
       current = current.children.get(char)!;
     }

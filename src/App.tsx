@@ -56,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isRecommendation = f
 
       {isRecommendation && reasons && (
         <div className="mb-4 bg-indigo-50 p-2 rounded text-xs text-indigo-800">
-          <span className="font-bold block mb-1 text-[10px] uppercase">DNA de Recomendação:</span>
+          <span className="font-bold block mb-1 text-[10px] uppercase">Tag:</span>
           <div className="flex flex-wrap gap-1">
             {reasons.slice(0, 3).map((r, i) => (
               <span key={i} className="bg-white px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1">

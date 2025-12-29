@@ -4,6 +4,7 @@ import { ProductCategoryTree } from './lib/trees/ProductCategoryTree';
 import { ProductSearchTrie } from './lib/trees/ProductSearchTrie';
 import { INITIAL_PRODUCTS } from './lib/mockData';
 import { TreeVisualizer } from './components/TreeVisualizer';
+import { ModernUserProfile } from './components/ModernUserProfile';
 import { extractTokensFromText, enrichProductQuery } from './services/localAnalysis';
 import {
   Search,
@@ -20,7 +21,6 @@ import {
   X,
   Tag,
   Info,
-  Maximize2,
   Navigation,
   Hash,
   Layers
@@ -46,12 +46,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isRecommendation = f
           <Zap size={10} fill="currentColor" /> {(score * 10).toFixed(0)}% MATCH
         </div>
       )}
-      
+
       <div className="mb-3 mt-2">
         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{product.brand}</p>
         <h3 className="font-bold text-slate-800 text-lg leading-tight line-clamp-2">{product.name}</h3>
       </div>
-      
+
       <p className="text-sm text-slate-600 mb-4 line-clamp-2 flex-1">{product.description}</p>
 
       {isRecommendation && reasons && (
@@ -98,19 +98,19 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 h-full flex flex-col justify-center items-center text-center">
-               <ShoppingBag size={64} className="text-slate-200 mb-4" />
-               <p className="text-sm text-slate-400">Imagem do Produto</p>
+              <ShoppingBag size={64} className="text-slate-200 mb-4" />
+              <p className="text-sm text-slate-400">Imagem do Produto</p>
             </div>
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                <Info size={18} className="text-indigo-600"/> Sobre o Produto
+                <Info size={18} className="text-indigo-600" /> Sobre o Produto
               </h3>
               <p className="text-slate-600 leading-relaxed">
                 {product.description}
@@ -119,7 +119,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 
             <div>
               <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                <Tag size={18} className="text-indigo-600"/> Tags (Nós da Trie)
+                <Tag size={18} className="text-indigo-600" /> Tags (Nós da Trie)
               </h3>
               <div className="flex flex-wrap gap-2">
                 {product.keywords.map((k, i) => (
@@ -132,8 +132,8 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 
             <div className="pt-6 border-t border-slate-100">
               <div className="flex items-center justify-between mb-4">
-                 <span className="text-sm text-slate-500">Valor</span>
-                 <span className="text-3xl font-bold text-slate-900">R$ {product.price.toFixed(2)}</span>
+                <span className="text-sm text-slate-500">Valor</span>
+                <span className="text-3xl font-bold text-slate-900">R$ {product.price.toFixed(2)}</span>
               </div>
               <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-bold text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95">
                 Comprar Agora
@@ -149,9 +149,9 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product, onClose: 
 // --- Aplicação Principal ---
 
 export default function App() {
-  const userProfileTrie = useRef(new UserProfileTrie());      
+  const userProfileTrie = useRef(new UserProfileTrie());
   const productCatalogTree = useRef(new ProductCategoryTree());
-  const productSearchTrie = useRef(new ProductSearchTrie());    
+  const productSearchTrie = useRef(new ProductSearchTrie());
 
   const [products, setProducts] = useState<Product[]>([]);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
@@ -160,10 +160,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'store' | 'debug'>('store');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
- 
+
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
- 
+
   const [searchInput, setSearchInput] = useState('');
   const [socialInput, setSocialInput] = useState('');
   const [streamingInput, setStreamingInput] = useState('');
@@ -180,7 +180,7 @@ export default function App() {
   const createDynamicProduct = async (term: string, source: string): Promise<Product> => {
     const cleanTerm = term.trim();
     const description = await enrichProductQuery(cleanTerm);
-    
+
     const newProduct: Product = {
       id: `dyn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: cleanTerm.charAt(0).toUpperCase() + cleanTerm.slice(1) + (source === 'social' ? ' (Trending)' : ''),
@@ -230,7 +230,7 @@ export default function App() {
 
   useEffect(() => {
     generateRecommendations();
-  }, [products]);
+  }, [products, lastUpdate]);
 
   const handleSearch = async () => {
     if (!searchInput.trim()) return;
@@ -244,8 +244,8 @@ export default function App() {
     userProfileTrie.current.insert(term.toLowerCase(), 2.0);
     let foundIds = productSearchTrie.current.search(term);
     if (foundIds.size === 0) {
-       const newProd = await createDynamicProduct(term, 'store');
-       foundIds = new Set([newProd.id]);
+      const newProd = await createDynamicProduct(term, 'store');
+      foundIds = new Set([newProd.id]);
     }
     const allCurrentProducts = productCatalogTree.current.getAllProducts();
     const filtered = allCurrentProducts.filter(p => foundIds.has(p.id));
@@ -270,8 +270,8 @@ export default function App() {
     const tokens = await extractTokensFromText(text);
     tokens.forEach(t => userProfileTrie.current.insert(t, 1.0));
     for (const token of tokens) {
-        const found = productSearchTrie.current.search(token);
-        if (found.size === 0) await createDynamicProduct(token, 'social');
+      const found = productSearchTrie.current.search(token);
+      if (found.size === 0) await createDynamicProduct(token, 'social');
     }
     setLastUpdate(Date.now());
     generateRecommendations();
@@ -303,8 +303,8 @@ export default function App() {
     setActionLog(prev => [action, ...prev]);
     product.keywords.forEach(k => userProfileTrie.current.insert(k, 0.5));
     userProfileTrie.current.insert(product.brand.toLowerCase(), 0.5);
-    if(product.categoryPath.length > 0) {
-      userProfileTrie.current.insert(product.categoryPath[product.categoryPath.length-1].toLowerCase(), 0.5);
+    if (product.categoryPath.length > 0) {
+      userProfileTrie.current.insert(product.categoryPath[product.categoryPath.length - 1].toLowerCase(), 0.5);
     }
     setLastUpdate(Date.now());
     generateRecommendations();
@@ -316,7 +316,7 @@ export default function App() {
 
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-8">
-          <div className="flex items-center gap-2 min-w-fit cursor-pointer" onClick={() => {setActiveTab('store'); clearSearch();}}>
+          <div className="flex items-center gap-2 min-w-fit cursor-pointer" onClick={() => { setActiveTab('store'); clearSearch(); }}>
             <div className="bg-indigo-600 p-1.5 rounded text-white">
               <GitBranch size={24} />
             </div>
@@ -348,10 +348,10 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="flex bg-slate-100 p-1 rounded-lg">
               <button onClick={() => setActiveTab('store')} className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'store' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <ShoppingBag size={14}/> Loja
+                <ShoppingBag size={14} /> Loja
               </button>
               <button onClick={() => setActiveTab('debug')} className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${activeTab === 'debug' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <BarChart3 size={14}/> Debug
+                <BarChart3 size={14} /> Debug
               </button>
             </div>
             <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700">
@@ -366,7 +366,7 @@ export default function App() {
           <div className="space-y-12 animate-in fade-in duration-500">
             {isSearching && (
               <section>
-                 <div className="flex items-center gap-2 mb-6">
+                <div className="flex items-center gap-2 mb-6">
                   <Search className="text-slate-700" size={24} />
                   <h2 className="text-2xl font-bold text-slate-900">Resultados para "{searchInput}"</h2>
                 </div>
@@ -420,7 +420,7 @@ export default function App() {
             <div className="col-span-12 lg:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <Share2 className="text-pink-500" size={20}/> Simulador Social
+                  <Share2 className="text-pink-500" size={20} /> Simulador Social
                 </h3>
                 <textarea
                   value={socialInput}
@@ -429,13 +429,13 @@ export default function App() {
                   className="w-full border border-slate-300 rounded-lg p-3 text-sm h-20 focus:ring-2 focus:ring-pink-500 outline-none resize-none mb-3"
                 />
                 <button onClick={handleSimulateSocial} disabled={isLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-                   Postar
+                  Postar
                 </button>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <Play className="text-red-600" size={20}/> Simulador de Streaming
+                  <Play className="text-red-600" size={20} /> Simulador de Streaming
                 </h3>
                 <input
                   type="text"
@@ -445,13 +445,13 @@ export default function App() {
                   className="w-full border border-slate-300 rounded-lg p-3 text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none"
                 />
                 <button onClick={handleSimulateStreaming} disabled={isLoading} className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-                   Assistir
+                  Assistir
                 </button>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-80 flex flex-col">
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Activity size={20} className="text-indigo-600"/> Log Comportamental
+                  <Activity size={20} className="text-indigo-600" /> Log Comportamental
                 </h3>
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                   {actionLog.map((log, i) => (
@@ -468,59 +468,65 @@ export default function App() {
             </div>
 
             <div className="col-span-12 lg:col-span-8 space-y-8">
-              <div className="flex items-center gap-2 mb-2">
+
+              {/* --- VISUALIZAÇÃO AMIGÁVEL (AQUI NA ABA DEBUG AGORA) --- */}
+              <ModernUserProfile
+                interests={userProfileTrie.current.getAllInterests()}
+                recommendedProducts={recommendations}
+              />
+
+              <div className="flex items-center gap-2 mb-2 pt-6 border-t border-slate-200">
                 <Cpu className="text-indigo-600" size={24} />
                 <h2 className="text-xl font-bold text-slate-800">Inspeção de Estruturas de Memória</h2>
               </div>
 
-              {/* Árvore 1: Trie de Perfil + LEITURA BONITA */}
+              {/* Árvore 1: Trie de Perfil */}
               <div className="space-y-4">
                 <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 text-white px-4 py-2 text-xs font-mono flex justify-between items-center">
                     <span>TRIE :: PERFIL_USUARIO</span>
-                    <span className="flex items-center gap-1 text-emerald-400"><Activity size={12}/> LIVE</span>
+                    <span className="flex items-center gap-1 text-emerald-400"><Activity size={12} /> LIVE</span>
                   </div>
                   <div className="overflow-auto max-h-[350px] p-4">
                     <div className="min-w-[800px]">
                       <TreeVisualizer data={userProfileTrie.current.toTreeData()} type="TRIE" />
                     </div>
                   </div>
-                  
-                  {/* PAINEL DE LEITURA DA TRIE */}
+
                   <div className="grid grid-cols-2 bg-indigo-900 p-4 gap-4 border-t border-indigo-800">
                     <div className="space-y-2">
-                       <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
-                         <Navigation size={12}/> Navegação de Prefixos
-                       </h4>
-                       <div className="bg-indigo-950/50 rounded p-3 border border-indigo-700/50">
-                         <p className="text-indigo-100 text-xs leading-relaxed italic">
-                            "Os ponteiros percorrem cada caractere inserido, consolidando interesses comuns em ramos compartilhados para economia de memória."
-                         </p>
-                       </div>
+                      <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
+                        <Navigation size={12} /> Navegação de Prefixos
+                      </h4>
+                      <div className="bg-indigo-950/50 rounded p-3 border border-indigo-700/50">
+                        <p className="text-indigo-100 text-xs leading-relaxed italic">
+                          "Como um dicionário inteligente, o sistema agrupa o início de palavras parecidas. Isso economiza memória e acelera a identificação do que você gosta."
+                        </p>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                       <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
-                         <Zap size={12}/> Estado dos Pesos
-                       </h4>
-                       <div className="flex flex-wrap gap-2">
-                          {Array.from(userProfileTrie.current.getAllInterests().entries()).slice(0, 5).map(([tag, score]) => (
-                            <div key={tag} className="bg-indigo-800 px-2 py-1 rounded border border-indigo-600 text-[10px] text-white flex items-center gap-2">
-                              <span className="text-indigo-300 font-mono">#{tag}</span>
-                              <span className="font-bold text-emerald-400">+{score.toFixed(1)}</span>
-                            </div>
-                          ))}
-                       </div>
+                      <h4 className="text-indigo-300 text-[10px] uppercase font-black flex items-center gap-2">
+                        <Zap size={12} /> Estado dos Pesos
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from(userProfileTrie.current.getAllInterests().entries()).slice(0, 5).map(([tag, score]) => (
+                          <div key={tag} className="bg-indigo-800 px-2 py-1 rounded border border-indigo-600 text-[10px] text-white flex items-center gap-2">
+                            <span className="text-indigo-300 font-mono">#{tag}</span>
+                            <span className="font-bold text-emerald-400">+{score.toFixed(1)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Árvore 2: Árvore N-ária + LEITURA BONITA */}
+              {/* Árvore 2: Árvore N-ária */}
               <div className="space-y-4">
                 <div className="bg-white p-1 rounded-xl shadow-md border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 text-white px-4 py-2 text-xs font-mono flex justify-between items-center">
                     <span>N-ARY_TREE :: CATALOGO_HIERARQUICO</span>
-                    <span className="flex items-center gap-1 text-blue-400"><Layers size={12}/> VIRTUAL_FS</span>
+                    <span className="flex items-center gap-1 text-blue-400"><Layers size={12} /> VIRTUAL_FS</span>
                   </div>
                   <div className="overflow-auto max-h-[450px] p-4">
                     <div className="min-w-[1000px]">
@@ -528,27 +534,27 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* PAINEL DE LEITURA DA CATEGORIA */}
                   <div className="bg-slate-50 p-5 border-t border-slate-200">
                     <div className="flex items-start gap-6">
                       <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Percurso de Injeção Dinâmica</span>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                           <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                              <span className="bg-slate-100 px-2 py-1 rounded border">Raiz</span>
-                              <span className="text-slate-300">→</span>
-                              <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 text-blue-700">Novidades</span>
-                              <span className="text-slate-300">→</span>
-                              <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-emerald-700">Setor Dinâmico</span>
-                              <span className="text-slate-300">→</span>
-                              <span className="bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-indigo-700 italic">Produto Injetado (Fim do Ramo)</span>
-                           </div>
+                          <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                            <span className="bg-slate-100 px-2 py-1 rounded border">Raiz</span>
+                            <span className="text-slate-300">→</span>
+                            <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 text-blue-700">Novidades</span>
+                            <span className="text-slate-300">→</span>
+                            <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-emerald-700">Setor Dinâmico</span>
+                            <span className="text-slate-300">→</span>
+                            <span className="bg-indigo-50 px-2 py-1 rounded border border-indigo-100 text-indigo-700 italic">Produto Injetado (Fim do Ramo)</span>
+                          </div>
                         </div>
                       </div>
                       <div className="w-1/3 space-y-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase block">Análise de Topologia</span>
                         <p className="text-[11px] text-slate-500 leading-tight">
-                          Cada categoria é um nó pai que pode sustentar $n$ sub-nós. A complexidade de localização é $O(h)$ onde $h$ é a profundidade da categoria.
+                          Organizado como pastas de computador: cada categoria pode ter várias subcategorias.
+                          A velocidade de busca depende apenas de quão "fundo" o produto está na hierarquia, e não do tamanho total da loja.
                         </p>
                       </div>
                     </div>
